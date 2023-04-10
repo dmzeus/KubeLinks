@@ -1,16 +1,18 @@
 # Default values for KubeLinks.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
-
 replicaCount: 1
+
+nameOverride: ""
+fullnameOverride: "kubelinks"
+
 image:
   repository: smitkirara/kubelinks
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: "v0.2.1"
 imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
+
 serviceAccount:
   # Specifies whether a service account should be created
   create: true
@@ -19,21 +21,30 @@ serviceAccount:
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
   name: ""
+
 podAnnotations: {}
 podSecurityContext: {}
 # fsGroup: 2000
 
-securityContext: {}
+securityContext:
 # capabilities:
 #   drop:
 #   - ALL
 # readOnlyRootFilesystem: true
-# runAsNonRoot: true
-# runAsUser: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
 
 service:
-  type: ClusterIP
+  # type: ClusterIP
+  type: LoadBalancer
   port: 80
+  annotations: # for create external DNS for service
+    service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "instance"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-manage-backend-security-group-rules: "false"
+
 ingress:
   enabled: false
   className: ""
@@ -49,6 +60,29 @@ ingress:
   #  - secretName: chart-example-tls
   #    hosts:
   #      - chart-example.local
+
+istio:
+  enabled: false
+  certificate:
+    create: true ## cert-manager required
+    clusterIssuer: r53-cluster-issuer
+    # namespace: istio-system
+  virtualService:
+    create: true ## istio required
+    tls: true
+    hosts:
+      - endpoints.example.dev
+    path: /
+    rewrite: {}
+    extraRoutes: []
+    headers: {}
+  gateway:
+    create: true ## Set true if you want to create new gateway
+    ## If existingGatewayName is specified, then new gateway won't be deployed, otherwise specify create to true and ingressGatewaySelector for deploy new gateway
+    existingGatewayName: {} ## istio-system/example-production
+    ingressGatewaySelector:
+      istio: istio-ingressgateway ## Specify istio-ingress label selector for new gateway
+
 resources: {}
 # We usually recommend not to specify default resources and to leave this as a conscious
 # choice for the user. This also increases chances charts run on environments with little
@@ -67,9 +101,13 @@ autoscaling:
   maxReplicas: 100
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
+
 nodeSelector: {}
+
 tolerations: []
+
 affinity: {}
+
 # Extra Urls shown on the page
 # URL name can be optional if you want to make a visible and real part of the link different
 extraUrls: []

@@ -6,7 +6,7 @@ KubeLinks provides a convenient web page with links to all urls presented in ing
 
 ## Features
   * Showing all Istio gateway and Ingress objects with clickable URLs for HTTP and HTTPS, also merge same HTTP+HTTPS to one record
-  * extra URLs to show on the page configurable in values if you want to add something useful
+  * Extra URLs to show on the page configurable in values if you want to add something useful
 
 ![Screen](KubeLinksScreen.png)
 

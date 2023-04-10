@@ -48,13 +48,17 @@ spec:
               port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.extraUrls }}
           volumeMounts:
             - name: extra-urls
               mountPath: /app/extraUrls
+          {{- end }}
+      {{- if .Values.extraUrls }}
       volumes:
         - name: extra-urls
           configMap:
             name: {{ include "KubeLinks.fullname" . }}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

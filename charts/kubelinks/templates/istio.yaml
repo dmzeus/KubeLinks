@@ -1,0 +1,100 @@
+
+{{- if .Values.istio.enabled }}
+
+{{- if .Values.istio.virtualService.create }}
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: {{ include "KubeLinks.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "KubeLinks.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.istio.gateway.existingGatewayName }}
+  gateways:
+    - {{ .Values.istio.gateway.existingGatewayName }}
+  {{- else if and (not .Values.istio.gateway.existingGatewayName) (eq .Values.istio.gateway.create true) }}
+  gateways:
+    - {{ include "KubeLinks.fullname" . }}
+  {{- else }}
+  {{ fail "Neither .Values.istio.gateway.create nor .Values.istio.gateway.existingGatewayName was set!"}}
+  {{- end }}
+  hosts:
+    {{- toYaml .Values.istio.virtualService.hosts | nindent 4 }}
+  http:
+  {{- if .Values.istio.virtualService.extraRoutes }}
+  {{- toYaml .Values.istio.virtualService.extraRoutes | nindent 2 }}
+  {{- end }}
+  - name: {{ include "KubeLinks.fullname" . }}
+    match:
+    - uri:
+        prefix: {{ .Values.istio.virtualService.path | default "/" }}
+    {{- if .Values.istio.virtualService.headers }}
+    headers:  {{ toYaml .Values.istio.virtualService.headers | nindent 6 }}
+    {{- end }}
+    {{- if .Values.istio.virtualService.rewrite }}
+    rewrite:
+      uri: {{ .Values.istio.virtualService.rewrite.uri }}
+    {{- end }}
+    route:
+      - destination:
+          host: "{{ include "KubeLinks.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local"
+          port:
+            number: {{ .Values.service.port }}
+{{- end }}
+---
+
+{{- if and (not .Values.istio.gateway.existingGatewayName) .Values.istio.gateway.create }}
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: {{ include "KubeLinks.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "KubeLinks.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- toYaml .Values.istio.gateway.ingressGatewaySelector | nindent 4 }}
+  servers:
+  - hosts: {{ toYaml .Values.istio.virtualService.hosts | nindent 4 }}
+    port:
+      name: http
+      number: 80
+      protocol: HTTP
+    {{- with .Values.istio.virtualService.tls }}
+    tls:
+      httpsRedirect: {{ . }}
+    {{- end }}
+  - hosts: {{ toYaml .Values.istio.virtualService.hosts | nindent 4 }}
+    port:
+      name: https
+      number: 443
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: {{ include "KubeLinks.fullname" . }}-certificate
+{{- end }}
+
+---
+{{- if .Values.istio.certificate.create }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "KubeLinks.fullname" . }}
+  namespace: {{ .Values.istio.certificate.namespace | default .Release.Namespace }}
+  labels:
+{{ include "KubeLinks.labels" . | indent 4 }}
+spec:
+  commonName: {{ index .Values.istio.virtualService.hosts 0 }}
+  dnsNames: {{ toYaml .Values.istio.virtualService.hosts | nindent 4 }}
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: {{ .Values.istio.certificate.clusterIssuer }}
+  secretName: {{ include "KubeLinks.fullname" . }}-certificate
+  usages:
+  - digital signature
+  - key encipherment
+{{- end }}
+
+{{- end }}
