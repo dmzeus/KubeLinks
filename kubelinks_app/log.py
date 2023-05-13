@@ -2,7 +2,7 @@ import logging
 import os
 from kubernetes import config
 
-LOGLEVEL = os.environ.get('LOGLEVEL','INFO').upper()
+LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO').upper()
 logger = logging.getLogger(__name__)
 logger.setLevel(LOGLEVEL)
 

@@ -10,8 +10,8 @@ home_bp = Blueprint('home_bp', __name__,
 @home_bp.route('/', methods=["GET"])
 def home():
     try:
-        ingress   = ingress_list.get_ingress_list()
-        gateway   = gateway_list.get_gw_list()
+        ingress = ingress_list.get_ingress_list()
+        gateway = gateway_list.get_gw_list()
         extraurls = extra_list.get_eu_list()
 
         return render_template("home.html",

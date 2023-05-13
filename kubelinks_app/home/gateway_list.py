@@ -7,6 +7,7 @@ from kubernetes import client
 
 skip_wildcard_urls = os.environ.get('SKIP_WILDCARD_URLS')
 
+
 @dataclass
 class Http_Gateway():
     metadata_name: str = None
