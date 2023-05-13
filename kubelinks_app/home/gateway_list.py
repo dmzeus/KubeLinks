@@ -1,8 +1,11 @@
 import json
+import os
 from dataclasses import dataclass
 
 from ..log import logger
 from kubernetes import client
+
+skip_wildcard_urls = os.environ.get('SKIP_WILDCARD_URLS')
 
 
 @dataclass
@@ -73,13 +76,16 @@ def get_gw_list(remove_duplicate: bool = True):
                 port = server.port
                 if port.protocol in ('HTTP', 'HTTP2', 'HTTPS'):
                     for host in server.hosts:
-                        link = get_link(host, port)
-                        host_name = get_name(host, port)
-                        list_gw.append(Http_Gateway(
-                            item.metadata.name,
-                            host, port.number,
-                            port.protocol == 'HTTPS',
-                            link, host_name))
+                        if '*' in host and skip_wildcard_urls == "true":
+                            continue
+                        else:
+                            link = get_link(host, port)
+                            host_name = get_name(host, port)
+                            list_gw.append(Http_Gateway(
+                                item.metadata.name,
+                                host, port.number,
+                                port.protocol == 'HTTPS',
+                                link, host_name))
     except Exception as e:
         logger.error(f'GATEWAY: {e}')
     logger.info('GATEWAY: FINISH')
